@@ -8,20 +8,9 @@ import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
 
-/**
- * RasterAlgorithmsApp — демонстрация базовых растровых алгоритмов:
- *  - Пошаговый
- *  - DDA (ЦДА)
- *  - Брезенхем (линия)
- *  - Брезенхем (окружность)
- *  - Castle-Pitteway (вариант "Castel-Pitway")
- *  - Алгоритм Ву (аппроксимация с интенсивностями)
- *
- * Интерфейс: слева параметры, справа холст.
- */
+
 public class RasterAlgorithmsApp extends JFrame {
 
-    // UI компоненты
     private final JComboBox<String> algoCombo;
     private final JSpinner sx1, sy1, sx2, sy2, sxc, syc, sr;
     private final JButton drawButton;
@@ -32,7 +21,6 @@ public class RasterAlgorithmsApp extends JFrame {
 
     private final DrawPanel drawPanel;
 
-    // Алгоритмы
     private static final String STEP_BY_STEP = "Пошаговый";
     private static final String DDA = "ЦДА (DDA)";
     private static final String BRESENHAM_LINE = "Брезенхем (линия)";
@@ -46,7 +34,6 @@ public class RasterAlgorithmsApp extends JFrame {
         setSize(1100, 700);
         setLocationRelativeTo(null);
 
-        // Панель управления слева
         JPanel control = new JPanel();
         control.setLayout(new BoxLayout(control, BoxLayout.Y_AXIS));
         control.setBorder(BorderFactory.createEmptyBorder(10,10,10,10));
@@ -103,17 +90,14 @@ public class RasterAlgorithmsApp extends JFrame {
         control.add(Box.createVerticalGlue());
         add(control, BorderLayout.WEST);
 
-        // Панель рисования
         drawPanel = new DrawPanel();
         add(drawPanel, BorderLayout.CENTER);
 
-        // Поведение при выборе алгоритма: скрываем/показываем блоки параметров
         algoCombo.addActionListener(e -> updateParamVisibility());
         updateParamVisibility();
 
         drawButton.addActionListener(e -> runAndRender());
 
-        // Быстрая реакция на изменение размера пикселей — перерисовать
         pixelSizeSpinner.addChangeListener(new ChangeListener() {
             @Override public void stateChanged(ChangeEvent e) { drawPanel.repaint(); }
         });
@@ -122,12 +106,10 @@ public class RasterAlgorithmsApp extends JFrame {
     private void updateParamVisibility() {
         String algo = (String) algoCombo.getSelectedItem();
         boolean isCircle = BRESENHAM_CIRCLE.equals(algo);
-        // Отрезок параметры видимые если не окружность
         sx1.setEnabled(!isCircle);
         sy1.setEnabled(!isCircle);
         sx2.setEnabled(!isCircle);
         sy2.setEnabled(!isCircle);
-        // Окружность только если окружность
         sxc.setEnabled(isCircle);
         syc.setEnabled(isCircle);
         sr.setEnabled(isCircle);
@@ -136,7 +118,6 @@ public class RasterAlgorithmsApp extends JFrame {
     private void runAndRender() {
         String algo = (String) algoCombo.getSelectedItem();
 
-        // Считываем параметры
         int x1 = (Integer) sx1.getValue();
         int y1 = (Integer) sy1.getValue();
         int x2 = (Integer) sx2.getValue();
@@ -145,10 +126,8 @@ public class RasterAlgorithmsApp extends JFrame {
         int yc = (Integer) syc.getValue();
         int r  = (Integer) sr.getValue();
 
-        // Выполнение выбранного алгоритма и замер времени
         long t0 = System.nanoTime();
 
-        // Мы возвращаем список пикселей с интенсивностью (1.0 = полная)
         List<Pixel> pixels = new ArrayList<>();
         switch (algo) {
             case STEP_BY_STEP:
@@ -179,26 +158,17 @@ public class RasterAlgorithmsApp extends JFrame {
         timeLabel.setText(String.format("Время: %.4f мс", ms));
         countLabel.setText("Пикселей: " + pixels.size());
 
-        // Передаем данные в панель и перерисовываем
         drawPanel.setData(pixels, algo, x1, y1, x2, y2, xc, yc, r, showIdealCB.isSelected(), (Integer) pixelSizeSpinner.getValue());
     }
 
-    // ------------------ Алгоритмы ------------------
-
-    // Pixel с интенсивностью для антиалиасинга
     private static class Pixel {
         int x, y;
         float intensity; // 0..1
         Pixel(int x, int y, float intensity) { this.x = x; this.y = y; this.intensity = intensity; }
     }
 
-    // Побочные структуры
     private static class Point { int x, y; Point(int x, int y){this.x=x;this.y=y;} }
 
-    /**
-     * 1) Пошаговый алгоритм (step-by-step).
-     * Поддерживает вертикальные и наклонные отрезки.
-     */
     public List<Point> stepByStepLine(int x1, int y1, int x2, int y2) {
         List<Point> pixels = new ArrayList<>();
         if (x1 == x2) {
@@ -207,8 +177,6 @@ public class RasterAlgorithmsApp extends JFrame {
             for (int y = sy; y <= ey; y++) pixels.add(new Point(x1, y));
             return pixels;
         }
-
-        // Сортировка по x для простоты
         if (x1 > x2) { int tx=x1, ty=y1; x1=x2; y1=y2; x2=tx; y2=ty; }
 
         int dx = x2 - x1;
@@ -221,7 +189,6 @@ public class RasterAlgorithmsApp extends JFrame {
                 pixels.add(new Point(x, y));
             }
         } else {
-            // доминирует y
             if (y1 > y2) { int tx=x1, ty=y1; x1=x2; y1=y2; x2=tx; y2=ty; }
             double mInv = (double) dx / (y2 - y1);
             for (int y = y1; y <= y2; y++) {
@@ -232,9 +199,7 @@ public class RasterAlgorithmsApp extends JFrame {
         return pixels;
     }
 
-    /**
-     * 2) DDA (Digital Differential Analyzer)
-     */
+
     public List<Point> ddaLine(int x1, int y1, int x2, int y2) {
         List<Point> pixels = new ArrayList<>();
         int dx = x2 - x1;
@@ -259,9 +224,6 @@ public class RasterAlgorithmsApp extends JFrame {
         return pixels;
     }
 
-    /**
-     * 3) Брезенхем (линия)
-     */
     public List<Point> bresenhamLine(int x0, int y0, int x1, int y1) {
         List<Point> pts = new ArrayList<>();
         int dx = Math.abs(x1 - x0);
@@ -288,9 +250,6 @@ public class RasterAlgorithmsApp extends JFrame {
         return pts;
     }
 
-    /**
-     * 4) Брезенхем для окружностей (симметричный)
-     */
     public List<Point> bresenhamCircle(int xc, int yc, int r) {
         Set<Long> set = new HashSet<>();
         int x = 0, y = r;
@@ -330,10 +289,7 @@ public class RasterAlgorithmsApp extends JFrame {
         set.add(key);
     }
 
-    /**
-     * 5) Castle-Pitteway (генерация строки движений и преобразование в пиксели)
-     * Реализация следует логике из приведенного вами Python-кода.
-     */
+
     public List<Point> castlePitteway(int x1, int y1, int x2, int y2) {
         int dxTotal = Math.abs(x2 - x1);
         int dyTotal = Math.abs(y2 - y1);
@@ -388,11 +344,6 @@ public class RasterAlgorithmsApp extends JFrame {
         return pixels;
     }
 
-    /**
-     * 6) Алгоритм Ву (аппроксимация).
-     * Возвращает пиксели с интенсивностями.
-     * Замечание: для упрощения реализации и отображения интенсивность используется как прозрачность.
-     */
     public List<Pixel> wuAntialiasingLine(int x1, int y1, int x2, int y2) {
         List<Pixel> result = new ArrayList<>();
         double dx = x2 - x1;
@@ -416,7 +367,6 @@ public class RasterAlgorithmsApp extends JFrame {
         }
         double gradient = (dx == 0) ? 1.0 : dy / dx;
 
-        // стартовая точка
         result.add(new Pixel(x1, y1, 1.0f));
         result.add(new Pixel(x2, y2, 1.0f));
 
@@ -439,7 +389,6 @@ public class RasterAlgorithmsApp extends JFrame {
         return result;
     }
 
-    // ------------------ Панель для рисования ------------------
 
     private static class DrawPanel extends JPanel {
         private List<Pixel> pixels = Collections.emptyList();
@@ -469,59 +418,40 @@ public class RasterAlgorithmsApp extends JFrame {
             super.paintComponent(g0);
             Graphics2D g = (Graphics2D) g0.create();
 
-            // Центрирование координат: даём небольшие отступы
             int w = getWidth();
             int h = getHeight();
             int offset = 20;
-            // Сдвигаем систему так, чтобы координата (0,0) отображалась примерно в левом-верхнем квадрате
-            // Мы будем рисовать в "пиксельных координатах" где (x,y) преобразуются в экран:
-            // screenX = offset + x * pixelSize; screenY = offset + y * pixelSize
-            // Для поддержки отрицательных координат, можно вычислить minX/minY в данных — но для простоты пусть будет фикс.
-            // Если нужно — можно изменить в будущих итерациях.
-
-            // Нарисуем идеальный отрезок/окружность (как тонкий контур)
             if (showIdeal) {
                 g.setColor(Color.RED);
                 g.setStroke(new BasicStroke(1f));
                 if (BRESENHAM_CIRCLE.equals(algo)) {
-                    // Идеальная окружность
                     g.drawOval(offset + xc*pixelSize - r*pixelSize, offset + yc*pixelSize - r*pixelSize,
                             r*2*pixelSize, r*2*pixelSize);
                 } else {
-                    // Идеальный отрезок
                     g.drawLine(offset + x1*pixelSize, offset + y1*pixelSize, offset + x2*pixelSize, offset + y2*pixelSize);
                 }
             }
 
-            // Рисуем пиксели: мы хотим, чтобы пиксель был квадрат размером pixelSize.
-            // Для антиалиасинга используем прозрачность AlphaComposite.
             for (Pixel p : pixels) {
                 int sx = offset + p.x * pixelSize;
                 int sy = offset + p.y * pixelSize;
                 if (p.intensity >= 0.999f) {
-                    // Полный пиксель
                     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1.0f));
                     g.setColor(Color.BLUE);
                     g.fillRect(sx, sy, pixelSize, pixelSize);
-                    // рамка для читаемости
                     g.setColor(Color.DARK_GRAY);
                     g.drawRect(sx, sy, pixelSize, pixelSize);
                 } else {
-                    // Антиалиасный пиксель: рисуем с прозрачностью, цвет — тёмно-синий
                     float alpha = clamp(p.intensity, 0f, 1f);
                     g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-                    // dark blue with transparency
                     g.setColor(new Color(0x00,0x00,0x80, (int)(255*alpha)));
                     g.fillRect(sx, sy, pixelSize, pixelSize);
                 }
             }
 
-            // Сброс композита
             g.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 1f));
 
-            // Рисунок осей (опционально)
             g.setColor(Color.LIGHT_GRAY);
-            // Вертикальная и горизонтальная центральные линии для ориентира
             g.drawLine(10, h/2, w-10, h/2);
             g.drawLine(w/2, 10, w/2, h-10);
 
@@ -533,7 +463,6 @@ public class RasterAlgorithmsApp extends JFrame {
         }
     }
 
-    // ------------------ Main ------------------
 
     public static void main(String[] args) {
         SwingUtilities.invokeLater(() -> {
